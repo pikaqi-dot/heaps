@@ -2,81 +2,73 @@ package h2d;
 import hxd.Math;
 
 /**
-	Viewport alignment when scaling mode supports it. See `ScaleMode`.
-**/
+ * 缩放模式对齐方式
+ * 当缩放模式支持对齐时，控制 Scene 视口在窗口中的位置
+ */
 enum ScaleModeAlign {
-	/** Anchor Scene viewport horizontally to the left side of the window. When passed to `verticalAlign` it will be treated as Center. **/
+	/** 水平左对齐（传给 verticalAlign 时视为 Center） */
 	Left;
-	/** Anchor Scene viewport horizontally to the right side of the window. When passed to `verticalAlign` it will be treated as Center. **/
+	/** 水平右对齐（传给 verticalAlign 时视为 Center） */
 	Right;
-	/** Anchor to the center of the window. **/
+	/** 居中对齐 */
 	Center;
-	/** Anchor Scene viewport vertically to the top of the window. When passed to `horizontalAlign` it will be treated as Center. **/
+	/** 垂直顶部对齐（传给 horizontalAlign 时视为 Center） */
 	Top;
-	/** Anchor Scene viewport vertically to the bottom of the window. When passed to `horizontalAlign` it will be treated as Center. **/
+	/** 垂直底部对齐（传给 horizontalAlign 时视为 Center） */
 	Bottom;
 }
 
 /**
-	Scaling mode of the 2D Scene.
-
-	Set via `Scene.scaleMode`.
-
-	See ScaleMode2D sample for usage showcase.
-**/
+ * 2D 场景缩放模式
+ *
+ * 通过 Scene.scaleMode 设置。
+ * 控制 2D 场景如何适应实际的窗口大小。
+ *
+ * - Resize：场景大小跟随窗口（默认）
+ * - Stretch：固定尺寸拉伸铺满
+ * - LetterBox：固定尺寸等比缩放
+ * - Fixed：固定尺寸和缩放倍数
+ * - Zoom：按倍数缩放
+ * - AutoZoom：自动计算缩放
+ * - Custom：自定义缩放
+ */
 enum ScaleMode {
 
-	/**
-		Matches scene size to window size. `width` and `height` of Scene will match window size. Default scaling mode.
-	**/
+	/** 场景大小匹配窗口大小（默认模式） */
 	Resize;
 
 	/**
-		Sets constant Scene size and stretches it to cover entire window. This behavior is same as old `setFixedSize` method.
-
-		@param width The width of the internal Scene viewport.
-		@param height The height of the internal Scene viewport.
-	**/
+	 * 固定场景大小并拉伸铺满整个窗口
+	 * @param width 内部视口宽度
+	 * @param height 内部视口高度
+	 */
 	Stretch(width : Int, height : Int);
 
 	/**
-		Sets constant Scene size and upscales it with preserving the aspect-ratio to fit the window.
-
-		With `800x600` window, `LetterBox(320, 260)` will result in center-aligned Scene of size `320x260` upscaled to fit into the window.
-		With same window but setting of `LetterBox(320, 260, true, Left, Top)` would result in the same Scene internal size,
-		upscaled to `640x480` resolution and anchored to the top-left corner of the window.
-
-		Note that while it's called LetterBox, there is no viewport rendering clipping apart from the out-of-bounds culling in `RenderContext.drawTile` / `Object.emitTile`.
-
-		@param width The width of the internal Scene viewport.
-		@param height The height of the internal Scene viewport.
-		@param integerScale When enabled, upscaling is performed only with integer increments (1x, 2x, 3x, etc) and can be used to achieve pixel-perfect scaling.
-		While enabled, the Scene won't be downscaled when internal viewport is larger than the window size and will remain at 1x zoom. Default: `false`.
-		@param horizontalAlign The horizontal viewport anchoring rule. Accepted values are `Left`, `Center` and `Right`. Default: `Center`.
-		@param verticalAlign The vertical viewport anchoring rule. Accepted values are `Top`, `Center` and `Bottom`. Default: `Center`.
-
-	**/
+	 * 固定场景大小，等比缩放以适配窗口（类似电影信箱效果）
+	 *
+	 * @param width 内部视口宽度
+	 * @param height 内部视口高度
+	 * @param integerScale 仅整数倍缩放（像素完美）
+	 * @param horizontalAlign 水平对齐（Left/Center/Right）
+	 * @param verticalAlign 垂直对齐（Top/Center/Bottom）
+	 */
 	LetterBox(width : Int, height : Int, ?integerScale : Bool, ?horizontalAlign : ScaleModeAlign, ?verticalAlign : ScaleModeAlign);
 
 	/**
-		Sets constant Scene size, scale and alignment. Does not perform any adaptation to the window size apart from alignment.
-
-		With `800x600` window, `Fixed(200, 150, 2, Left, Center)` will result in the Scene size of `200x150`, and visually upscaled to `400x300`, and aligned to a middle-left of the window.
-
-		@param width The width of the internal Scene viewport.
-		@param height The height of the internal Scene viewport.
-		@param zoom The scaling multiplier of internal viewport when rendering onto the screen.
-		@param horizontalAlign The horizontal viewport anchoring rule. Accepted values are `Left`, `Center` and `Right`. Default: `Center`.
-		@param verticalAlign The vertical viewport anchoring rule. Accepted values are `Top`, `Center` and `Bottom`. Default: `Center`.
-
-	**/
+	 * 固定场景大小、缩放倍数和对齐方式
+	 * @param width 内部视口宽度
+	 * @param height 内部视口高度
+	 * @param zoom 缩放倍数
+	 * @param horizontalAlign 水平对齐
+	 * @param verticalAlign 垂直对齐
+	 */
 	Fixed(width : Int, height: Int, zoom : Float, ?horizontalAlign : ScaleModeAlign, ?verticalAlign : ScaleModeAlign);
 
 	/**
-		Upscales/downscales the Scene internal viewport according to `level` and matches Scene size to `ceil(window size / level)`.
-
-		With `800x600` window, `Zoom(2)` will result in the `400x300` Scene size upscaled to fill the entire window.
-	**/
+	 * 根据 level 缩放场景
+	 * 场景大小 = ceil(窗口大小 / level)
+	 */
 	Zoom(level : Float);
 
 	/**
@@ -100,43 +92,47 @@ enum ScaleMode {
 	/**
 		Custom mode.
  	**/
+	/**
+	 * 自定义缩放模式
+	 * @param width 内部视口宽度
+	 * @param height 内部视口高度
+	 * @param scaleW 水平缩放
+	 * @param scaleH 垂直缩放
+	 */
 	Custom( width : Int, height : Int, scaleW : Float, scaleH : Float );
 }
 
 /**
-	The root class for a 2D scene. All root objects are added to it before being drawn on screen.
-**/
+	* 2D 场景根类
+	*
+	* 所有 2D 对象的根节点，所有根对象必须先添加到 Scene 才能被渲染。
+	*
+	* 功能：
+	* - 管理视口大小和缩放
+	* - 管理渲染上下文
+	* - 处理窗口大小变化
+	* - 事件处理（鼠标/触摸/键盘）
+	* - 默认渲染属性（平滑等）
+	*/
 class Scene extends Layers implements h3d.IDrawable implements hxd.SceneEvents.InteractiveScene {
 
-	/**
-		The current width (in pixels) of the scene. Can change if the screen gets resized or `scaleMode` changes.
-	**/
+	/** 场景宽度（像素），随窗口大小或 scaleMode 变化 */
 	public var width(default,null) : Int;
 
-	/**
-		The current height (in pixels) of the scene. Can change if the screen gets resized or `scaleMode` changes.
-	**/
+	/** 场景高度（像素） */
 	public var height(default, null) : Int;
 
-	/**
-		Viewport horizontal scale transform value. Converts from scene space to screen space of [0, 2] range.
-	**/
+	/** 视口水平缩放（场景→屏幕，范围 [0,2]） */
 	var viewportA(default, null) : Float;
-	/**
-		Viewport vertical scale transform value. Converts from scene space to screen space of [0, 2] range.
-	**/
+	
+	/** 视口垂直缩放（场景→屏幕，范围 [0,2]） */
 	var viewportD(default, null) : Float;
-	/**
-		Horizontal viewport offset relative to top-left corner of the window. Can change if the screen gets resized or `scaleMode` changes.
-		Offset is in screen-space coordinates: [-1, 1] where 0 is center of the window.
-	**/
+	
+	/** 视口水平偏移（屏幕空间 [-1,1]，0=居中） */
 	var viewportX(default, null) : Float;
-	/**
-		Vertical viewport offset relative to top-left corner of the window. Can change if the screen gets resized or `scaleMode` changes.
-		Offset is in screen-space coordinates: [-1, 1] where 0 is center of the window.
-	**/
+	
+	/** 视口垂直偏移（屏幕空间 [-1,1]，0=居中） */
 	var viewportY(default, null) : Float;
-
 	/**
 		Horizontal viewport offset relative to top-left corner of the window in pixels.
 		Assigned if the screen gets resized or `scaleMode` changes.

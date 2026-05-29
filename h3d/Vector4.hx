@@ -2,16 +2,25 @@ package h3d;
 using hxd.Math;
 
 /**
-	A 4 floats vector. Everytime a Vector is returned, it means a copy is created.
-**/
-class Vector4Impl /*#if apicheck implements h2d.impl.PointApi<Vector4,Matrix> #end*/ {
+ * 四维向量（4D Vector / Homogeneous Coordinate）
+ *
+ * 包含 x、y、z、w 四个 Float 分量的向量类。
+ * w 分量通常用于齐次坐标（Homogeneous Coordinates），
+ * 在 3D 图形中表示位置时 w=1，表示方向时 w=0。
+ *
+ * 每次返回 Vector4 时都会创建新副本（值类型语义）。
+ *
+ * 注意：长度相关的函数（length, normalize, dot, scale 等）
+ * 只对 x/y/z 分量操作，w 分量不受影响。
+ */
+class Vector4Impl {
 
-	public var x : Float;
-	public var y : Float;
-	public var z : Float;
-	public var w : Float;
+	public var x : Float;  // X 分量（也可用作颜色 R 分量）
+	public var y : Float;  // Y 分量（也可用作颜色 G 分量）
+	public var z : Float;  // Z 分量（也可用作颜色 B 分量）
+	public var w : Float;  // W 分量（齐次坐标，也可用作颜色 A/Alpha 分量）
 
-	// -- gen api
+	// -- 通用 API
 
 	public inline function new( x = 0., y = 0., z = 0., w = 1. ) {
 		this.x = x;
@@ -20,54 +29,15 @@ class Vector4Impl /*#if apicheck implements h2d.impl.PointApi<Vector4,Matrix> #e
 		this.w = w;
 	}
 
-	/*
+	// 以下长度相关函数暂时禁用
+	// 因为 Vector4 的 w 分量在齐次坐标中不应参与长度计算
 
-	// disable "length" based functions for now (
-
-	public inline function distance( v : Vector4 ) {
-		return Math.sqrt(distanceSq(v));
-	}
-
-	public inline function distanceSq( v : Vector4 ) {
-		var dx = v.x - x;
-		var dy = v.y - y;
-		var dz = v.z - z;
-		return dx * dx + dy * dy + dz * dz;
-	}
-
-	public inline function scaled( v : Float ) {
-		// see scale
-		return new Vector(x * v, y * v, z * v, w * v);
-	}
-
-	public inline function lengthSq() {
-		return x * x + y * y + z * z;
-	}
-
-	public inline function length() {
-		return lengthSq().sqrt();
-	}
-
-	public inline function normalize() {
-		var k = lengthSq();
-		if( k < hxd.Math.EPSILON2 ) k = 0 else k = k.invSqrt();
-		x *= k;
-		y *= k;
-		z *= k;
-	}
-
-	public inline function normalized() {
-		var k = lengthSq();
-		if( k < hxd.Math.EPSILON2 ) k = 0 else k = k.invSqrt();
-		return new Vector(x * k, y * k, z * k);
-	}
-
-	*/
-
+	/** 四维点积（包含 w 分量） */
 	public inline function dot4( v : Vector4 ) {
 		return x * v.x + y * v.y + z * v.z + w * v.w;
 	}
 
+	/** 三维点积（不包含 w 分量） */
 	public inline function dot3( v : Vector4 ) {
 		return x * v.x + y * v.y + z * v.z;
 	}

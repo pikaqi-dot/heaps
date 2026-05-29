@@ -1,58 +1,67 @@
 package h2d.filter;
 
 /**
-	The base filter class, you can extend it in order to define your own filters, although ShaderFilter will be the most straightforward way to define simple custom filter.
-
-	Keep in mind that filters use internal Object resolution to render its content, hence scaling of the filtered object would not increase the rendering resolution.
-	For example, 20x20px `Bitmap` with `scale = 2` will render onto 20x20 filter texture if filter is attached to it directly,
-	but if filter is attached to the parent of that bitmap, filter will render 40x40 texture.
-	Another thing to be aware of, is that `Scene.scaleMode` does not affect filter resolution either,
-	and upscaling contents with `scaleMode` would not upscale the resolution of filtered content.
-
-	Filters limit their render area dictated by bound object boundaries, `Filter.autoBounds` and `Filter.boundsExtend` variables and `Filter.getBounds` method.
-	See their respective docs for details.
-
-	For optimization purposes, rendering boundaries are clipped by scene viewport and nothing will be rendered offscreen.
-**/
+ * 滤镜基类（Filter）
+ *
+ * 所有 2D 滤镜的基类。可通过继承实现自定义滤镜，
+ * 但 ShaderFilter 是定义简单自定义滤镜最直接的方式。
+ *
+ * 重要注意事项：
+ * 1. 滤镜使用对象的内部分辨率渲染，缩放滤镜对象不会提高渲染精度。
+ *    例如：20×20px 的 Bitmap 设 scale=2，滤镜附在 Bitmap 上时渲染为 20×20，
+ *    附在父对象上时渲染为 40×40。
+ * 2. Scene.scaleMode 不影响滤镜分辨率。
+ * 3. 滤镜渲染范围受对象边界、autoBounds、boundsExtend 和 getBounds 控制。
+ * 4. 为优化性能，渲染边界会被场景视口裁剪。
+ *
+ * 内置滤镜包括：
+ * - Bloom：泛光效果
+ * - Blur：模糊
+ * - DropShadow：投影
+ * - Glow：发光
+ * - Outline：描边
+ * - ColorMatrix：颜色矩阵
+ * - Displacement：位移
+ * - ToneMapping：色调映射
+ */
 class Filter {
 
 	/**
-		When enabled, rendering bounds of the filter will be expanded by `Filter.boundsExtend` in all directions.
-		Otherwise filter should provide custom bounds through `Filter.getBounds` call.
-		Default : true.
-	**/
+	 * 是否自动计算渲染边界
+	 * 启用时，边界会被 boundsExtend 向四周扩展。
+	 * 禁用时，需通过 getBounds 提供自定义边界。
+	 */
 	public var autoBounds = true;
+	
 	/**
-		Rendering texture boundaries extent. Increases the rendering area by twice the `Filter.boundsExtend` value.
-		Automatically applied to object bounds when `autoBounds = true` or `Filter.getBounds` is not overridden.
-		Does not affect boundaries when `autoBounds = true` and `boundsExtend` is less than 0.
-	**/
+	 * 渲染纹理边界扩展值
+	 * 渲染区域向四周增加 2×boundsExtend 像素。
+	 * autoBounds=true 且 boundsExtend<0 时不影响边界。
+	 */
 	public var boundsExtend : Float = 0.;
+	
 	/**
-		When enabled, filters on not Object which are not Drawable will use bilinear filtering when displayed
-		and some filter will also use bilinear filtering on intermediate textures.
-	**/
+	 * 是否使用双线性过滤
+	 * 启用后非 Drawable 的 Object 上的滤镜和中间纹理使用双线性过滤。
+	 */
 	public var smooth = false;
-	/**
-		When filter is disabled, attached object will render as usual.
-	**/
+	
+	/** 是否启用滤镜（禁用时对象正常渲染） */
 	@:isVar public var enable(get,set) = true;
 
 	/**
-		Custom rendering resolution scaling of the filter.
-
-		Stacks with additional scaling from `Filter.useResolutionScaling` if enabled.
-	**/
+	 * 自定义渲染分辨率缩放
+	 * 与 useScreenResolution 叠加
+	 */
 	public var resolutionScale(default, set):Float = 1;
+	
 	/**
-		Use the screen resolution to upscale/downscale the filter rendering resolution.
-
-		Stacks with additional scaling from `Filter.resolutionScale` if enabled.
-	**/
+	 * 是否使用屏幕分辨率缩放滤镜渲染分辨率
+	 * 与 resolutionScale 叠加
+	 */
 	public var useScreenResolution(default, set):Bool = defaultUseScreenResolution;
-	/**
-		Defines default value for `Filter.useResolutionScaling`.
-	**/
+	
+	/** useScreenResolution 的默认值 */
 	public static var defaultUseScreenResolution:Bool = false;
 
 	function new() {
@@ -64,16 +73,14 @@ class Filter {
 	function set_resolutionScale(v) return resolutionScale = v;
 	function set_useScreenResolution(v) return useScreenResolution = v;
 
-	/**
-		Used to sync data for rendering.
-	**/
+	/** 同步渲染数据 */
 	public function sync( ctx : RenderContext, s : Object ) {
 	}
 
 	/**
-		Sent when filter is bound to an Object `s`.
-		If Object was not yet allocated, method will be called when it's added to allocated Scene.
-	**/
+	 * 滤镜绑定到对象时调用
+	 * 如果对象尚未分配，会在添加到场景时调用
+	 */
 	public function bind( s : Object ) {
 	}
 

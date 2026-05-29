@@ -2,97 +2,82 @@ package h2d;
 import hxd.Math;
 
 /**
-	A base 2D class that all scene tree elements inherit from.
-
-	Serves as a virtual container that does not display anything but can contain other objects
-	so the various transforms are inherited to its children.
-
-	Private events `Object.onAdd`, `Object.onRemove` and `Object.onHierarchyMoved` can be used
-	to capture when Object is added/removed from the currently active scene as well as being moved withing the object tree.
-
-	Object exposes a number of properties to control position, scale and rotation of the Object relative to its parent,
-	but they are used indirectly during rendering. Instead, they are being used to calculate the absolute matrix transform
-	relative to the Scene. As optimization, it's not recalculated as soon as properties are modified and delayed until
-	`Object.sync`. Absolute object position can be accessed through private variables `Object.matA`, `Object.matB`,
-	`Object.matC`, `Object.matD`, `Object.absX` and `Object.absY`.
-	But it should be noted that in order to ensure up-to-date values, it's advised to call `Object.syncPos` before accessing them.
-**/
+ * 2D 对象基类
+ *
+ * 所有 2D 场景树元素的基类。作为虚拟容器使用——自身不渲染任何内容，
+ * 但可以包含其他子对象，并让子对象继承变换属性（位置、缩放、旋转等）。
+ *
+ * 2D 变换矩阵（2x3 仿射矩阵）：
+ * ```
+ * [ matA  matC ]   [ x ]
+ * [ matB  matD ] + [ y ]
+ * ```
+ * 其中 (matA, matB, matC, matD) 是 2x2 矩阵，包含旋转和缩放分量，
+ * (absX, absY) 是相对于场景的绝对位置。
+ *
+ * 性能优化：变换矩阵不会在属性修改时立即重算，而是延迟到 sync() 调用时。
+ * 私有事件 onAdd/onRemove/onHierarchyMoved 可用于监听场景树变化。
+ */
 @:allow(h2d.Tools)
 class Object #if (domkit && !domkit_heaps) implements domkit.Model<h2d.Object> #end {
 
 	static var nullDrawable : h2d.Drawable;
 
-	var children : Array<Object>;
+	var children : Array<Object>;       // 子对象列表
+
 	/**
-		The parent container of this object.
-		See `Object.contentChanged` for more details.
-	**/
+	 * 父容器（与 parent 的区别在于，Object 可能有非容器的父对象，
+	 * parentContainer 指向最近的容器祖先）
+	 */
 	@:dox(show)
 	var parentContainer : Object;
 
-	/**
-		The parent object in the scene tree.
-	**/
+	/** 场景树中的父对象 */
 	public var parent(default, null) : Object;
 
-	/**
-		How many immediate children this object has.
-	**/
+	/** 直接子对象的数量 */
 	public var numChildren(get, never) : Int;
 
-	/**
-		The name of the object. Can be used to retrieve an object within a tree by using `Object.getObjectByName`.
-	**/
+	/** 对象名称，可通过 getObjectByName 在场景树中查找 */
 	public var name : String;
 
-	/**
-		The x position (in pixels) of the object relative to its parent.
-	**/
+	// ===== 变换属性 =====
+	// 这些属性用于控制对象相对于父对象的位置/缩放/旋转
+	// 它们不直接参与渲染，而是用于计算绝对变换矩阵
+
+	/** X 位置（像素），相对于父对象 */
 	public var x(default,set) : Float = 0;
 
-	/**
-		The y position (in pixels) of the object relative to its parent.
-	**/
+	/** Y 位置（像素），相对于父对象 */
 	public var y(default, set) : Float = 0;
 
-	/**
-		The amount of horizontal scaling of this object.
-	**/
+	/** 水平缩放 */
 	public var scaleX(default,set) : Float = 1;
 
-	/**
-		The amount of vertical scaling of this object.
-	**/
+	/** 垂直缩放 */
 	public var scaleY(default,set) : Float = 1;
 
-	/**
-		The rotation angle of this object, in radians.
-	**/
+	/** 旋转角度（弧度） */
 	public var rotation(default, set) : Float = 0;
 
-	/**
-		Is the object and its children are displayed on screen.
-	**/
+	/** 是否可见（设为 false 可隐藏自身及所有子对象） */
 	public var visible(default, set) : Bool = true;
 
-	/**
-		The amount of transparency of the Object.
-	**/
+	/** 透明度 [0-1]，0=完全透明，1=不透明 */
 	public var alpha : Float = 1.;
 
 	/**
-		The post process filter for this object.
-
-		When set, `Object.alpha` value affects both filter and object transparency (use `Drawable.color.a` to set transparency only for the object).
-	**/
+	 * 后期处理滤镜
+	 * 设置后，alpha 同时影响滤镜和对象透明度
+	 * 若只控制对象透明度，使用 Drawable.color.a
+	 */
 	public var filter(default,set) : h2d.filter.Filter;
 
 	/**
-		The blending mode of the object.
-
-		If there is no `Object.filter` active, only applies to the current object (not inherited by children).
-		Otherwise tells how the filter is blended with background.
-	**/
+	 * 混合模式
+	 * 没有滤镜时，仅应用于当前对象（不继承给子对象）
+	 * 有滤镜时，控制滤镜与背景的混合方式
+	 */
 	public var blendMode : BlendMode = Alpha;
 
 	#if domkit
@@ -101,6 +86,10 @@ class Object #if (domkit && !domkit_heaps) implements domkit.Model<h2d.Object> #
 	@:dox(hide) @:noCompletion #if !domkit_heaps public #end function getChildRefPosition( first : Bool ) return first ? 0 : children.length - 1;
 	#end
 
+	// ===== 2x3 仿射变换矩阵的私有分量 =====
+	// matA/matB/matC/matD 构成 2x2 旋转缩放矩阵
+	// absX/absY 是相对于场景的绝对位置
+	// 变换公式：newPos = [matA matC; matB matD] * localPos + [absX, absY]
 	var matA : Float;
 	var matB : Float;
 	var matC : Float;
@@ -109,26 +98,29 @@ class Object #if (domkit && !domkit_heaps) implements domkit.Model<h2d.Object> #
 	var absY : Float;
 
 	/**
-		A flag that indicates that the object transform was modified and absolute position recalculation is required.
-
-		Automatically cleared on `Object.sync` and can be manually synced with the `Object.syncPos`.
-	**/
+	 * 位置已更改标志
+	 * 当变换属性（x/y/scaleX/scaleY/rotation）被修改时置为 true，
+	 * 在 sync() 中自动清除。
+	 * 可通过 syncPos() 手动同步。
+	 */
 	@:dox(show)
 	var posChanged : Bool;
-	/**
-		A flag that indicates whether the object was allocated or not.
 
-		When adding children to allocated objects, `onAdd` is being called immediately,
-		otherwise it's delayed until the whole tree is added to a currently active `Scene`.
-	**/
+	/**
+	 * 已分配标志
+	 * 表示对象是否已加入活动的 Scene。
+	 * 当对象已分配时，添加子对象会立即触发 onAdd；
+	 * 否则延迟到整个树加入 Scene 时触发。
+	 */
 	@:dox(show)
 	var allocated : Bool;
-	var lastFrame : Int;
+	
+	var lastFrame : Int;  // 最后渲染帧编号（用于每帧一次的优化）
 
 	/**
-		Create a new empty object.
-		@param parent An optional parent `h2d.Object` instance to which Object adds itself if set.
-	**/
+	 * 创建空对象
+	 * @param parent 可选的父对象（自动 addChild）
+	 */
 	public function new( ?parent : Object ) {
 		matA = 1; matB = 0; matC = 0; matD = 1; absX = 0; absY = 0;
 		posChanged = parent != null;

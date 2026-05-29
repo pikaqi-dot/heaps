@@ -1,51 +1,49 @@
 package h2d.col;
 import hxd.Math;
 /**
-	A 2D bounding box often used for determining Object bounding area.
-
-	Bounds holds min/max coordinates of bounding box instead of it's position and size.
-	@see `Object.getBounds`
-	@see `Object.getSize`
-**/
+ * 2D AABB 包围盒（Axis-Aligned Bounding Box）
+ *
+ * 用于确定 2D 对象的包围区域。
+ * 使用最小/最大坐标（xMin/xMax/yMin/yMax）而非位置+大小，
+ * 便于碰撞检测和边界计算。
+ *
+ * 通过 x/y/width/height 属性可以便捷访问位置和大小。
+ *
+ * @see Object.getBounds
+ * @see Object.getSize
+ */
 class Bounds extends Collider {
 
-	/** X-axis left-most bounding box point. **/
+	/** X 轴最小坐标（左边缘） */
 	public var xMin : Float;
-	/** Y-axis top-most bounding box point. **/
+	
+	/** Y 轴最小坐标（上边缘） */
 	public var yMin : Float;
 
-	/** X-axis right-most bounding box point. **/
+	/** X 轴最大坐标（右边缘） */
 	public var xMax : Float;
-	/** Y-axis bottom-most bounding box point. **/
+	
+	/** Y 轴最大坐标（下边缘） */
 	public var yMax : Float;
 
-	/**
-		X-axis position of the bounding box top-left corner. Modifying it alters both `Bounds.xMin` and `Bounds.xMax`.
-	**/
+	/** 包围盒左上角 X 位置（修改同时影响 xMin/xMax） */
 	public var x(get, set) : Float;
-	/**
-		Y-axis position of the bounding box top-left corner. Modifying it alters both `Bounds.yMin` and `Bounds.yMax`.
-	**/
+	
+	/** 包围盒左上角 Y 位置（修改同时影响 yMin/yMax） */
 	public var y(get, set) : Float;
-	/**
-		Width of the bounding box. Equivalent of `xMax - xMin`.
-	**/
+	
+	/** 包围盒宽度（= xMax - xMin） */
 	public var width(get, set) : Float;
-	/**
-		Height of the bounding box. Equivalent of `yMax - yMin`.
-	**/
+	
+	/** 包围盒高度（= yMax - yMin） */
 	public var height(get, set) : Float;
 
-	/**
-		Create new empty Bounds instance.
-	**/
+	/** 创建空包围盒 */
 	public inline function new() {
 		empty();
 	}
 
-	/**
-		Converts bounding box to integer bounding box scaled by provided scalar `scale` (rounded down for `min` and up for `max`).
-	**/
+	/** 转换为整数包围盒（min 向下取整，max 向上取整） */
 	public inline function toIBounds( scale = 1. ) : IBounds {
 		var ix = Math.floor(x * scale);
 		var iy = Math.floor(y * scale);

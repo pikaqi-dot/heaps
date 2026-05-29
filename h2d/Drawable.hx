@@ -1,54 +1,64 @@
 package h2d;
 
 /**
-	A base class for all 2D objects that will draw something on the screen.
-
-	Unlike Object base class, all properties of Drawable only apply to the current object and are not inherited by its children.
-**/
+ * 可绘制对象基类
+ *
+ * 所有在屏幕上渲染内容的 2D 对象的基类。
+ * 与 Object 不同，Drawable 的所有属性仅应用于当前对象，
+ * 不继承给子对象。
+ *
+ * 功能：
+ * - 颜色叠加（color multiplier）
+ * - 纹理平滑（smooth bilinear filtering）
+ * - UV 环绕（tileWrap）
+ * - 颜色键抠图（colorKey chroma key）
+ * - 颜色矩阵变换
+ * - 颜色加法
+ * - 自定义着色器
+ */
 class Drawable extends Object {
 
 	/**
-		The color multiplier for the drawable. Can be used to adjust individually each of the four channels R,G,B,A (default [1,1,1,1])
-	**/
+	 * 颜色乘数（RGBA，默认 [1,1,1,1]）
+	 * 可单独调整每个通道，color.a 控制透明度
+	 */
 	public var color(default,default) : h3d.Vector4;
 
 	/**
-		By enabling smoothing, scaling the object up or down will use hardware bilinear filtering resulting in a less crisp aspect.
-
-		By default smooth is `null` in which case `Scene.defaultSmooth` value is used.
-	**/
+	 * 纹理平滑
+	 * true=硬件双线性过滤（缩放更平滑但可能模糊）
+	 * false=最近邻采样（保持像素风格）
+	 * null=使用 Scene.defaultSmooth 的值
+	 */
 	public var smooth : Null<Bool>;
 
 	/**
-		Enables texture uv wrap for this Drawable, causing tiles with uv exceeding the texture size to repeat instead of clamping on edges.
-
-		Note that `tileWrap` does not use the `Tile` region as a wrapping area but instead uses underlying `h3d.mat.Texture` size.
-		This is due to implementation specifics, as it just sets the `Texture.wrap` to either `Repeat` or `Clamp`.
-		Because of that, proper Tile tiling can be expected only when the tile covers an entire Texture area.
-	**/
+	 * 纹理 UV 环绕模式
+	 * 当 UV 超出纹理边界时：
+	 * true=重复纹理（Repeat）
+	 * false=边缘钳制（Clamp）
+	 *
+	 * 注意：使用的是底层纹理的大小而不是 Tile 区域，
+	 * 所以仅在 Tile 覆盖整个纹理时效果正确
+	 */
 	public var tileWrap(default, set) : Bool;
 
-	/**
-		Setting a colorKey color value will discard all pixels that have this exact color in the tile.
-	**/
+	/** 颜色键（Chroma Key），匹配的像素将被丢弃 */
 	public var colorKey(default, set) : Null<Int>;
 
-	/**
-		Setting a colorMatrix will apply a color transformation. See also `adjustColor`.
-	**/
+	/** 颜色矩阵变换（参见 adjustColor） */
 	public var colorMatrix(get, set) : Null<h3d.Matrix>;
 
-	/**
-		Setting colorAdd will add the amount of color of each channel R,G,B,A to the object pixels.
-	**/
+	/** 颜色加法（RGBA 各通道的偏移量） */
 	public var colorAdd(get, set) : Null<h3d.Vector>;
 
+	/** 着色器列表 */
 	var shaders : hxsl.ShaderList;
 
 	/**
-		Create a new Drawable instance with given parent.
-		@param parent An optional parent `h2d.Object` instance to which Drawable adds itself if set.
-	**/
+	 * 创建 Drawable 实例
+	 * @param parent 可选的父对象
+	 */
 	function new(parent : h2d.Object) {
 		super(parent);
 		color = new h3d.Vector4(1, 1, 1, 1);

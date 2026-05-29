@@ -1,96 +1,62 @@
 package h2d;
 
 /**
-	A core 2D rendering component representing a region of an underlying `h3d.mat.Texture`.
-
-	Tiles cannot be created directly, and instances are created with the following methods:
-	* Via the Resource Management system: `hxd.res.Image.toTile`.
-	* From pre-existing Texture: `Tile.fromTexture`.
-	* From pre-existing `BitmapData` or `Pixels`: `Tile.fromBitmap` and `Tile.fromPixels` (as well as `Tile.autoCut`).
-	* From solid color: `Tile.fromColor`.
-	* From previously existing Tile instance via various methods, such as `Tile.sub`.
-**/
+ * 瓦片（Tile）
+ *
+ * Heaps 2D 渲染的核心组件，表示底层 `h3d.mat.Texture` 上的一个矩形区域。
+ * 通过 UV 坐标 (u,v,u2,v2) 引用纹理的子区域。
+ *
+ * Tile 不能直接创建，可通过以下方式获取实例：
+ * - 资源管理：`hxd.res.Image.toTile`
+ * - 从已有纹理：`Tile.fromTexture`
+ * - 从像素数据：`Tile.fromBitmap` / `Tile.fromPixels`
+ * - 纯色：`Tile.fromColor`
+ * - 从已有 Tile 分割：`Tile.sub`
+ * - 自动裁剪：`Tile.autoCut`
+ */
 @:allow(h2d)
 class Tile {
 
-	var innerTex : h3d.mat.Texture;
+	var innerTex : h3d.mat.Texture;  // 底层纹理
 
-	var u : Float;
-	var v : Float;
-	var u2 : Float;
-	var v2 : Float;
+	// UV 坐标（归一化到 [0,1]）
+	var u : Float;   // 左上 U
+	var v : Float;   // 左上 V
+	var u2 : Float;  // 右下 U
+	var v2 : Float;  // 右下 V
 
-	/**
-		Visual offset of the Tile along the X axis during rendering.
-	**/
+	/** 渲染时 X 轴视觉偏移 */
 	public var dx : Float;
-	/**
-		Visual offset of the Tile along the Y axis during rendering.
-	**/
+	/** 渲染时 Y 轴视觉偏移 */
 	public var dy : Float;
-	/**
-		Horizontal position of the Tile on the Texture.
 
-		Cannot be modified directly, use `Tile.setPosition` instead.
-	**/
+	/** Tile 在纹理上的 X 位置（像素） */
 	public var x(default,null) : Float;
-	/**
-		Vertical position of the Tile on the Texture.
-
-		Cannot be modified directly, use `Tile.setPosition` instead.
-	**/
+	/** Tile 在纹理上的 Y 位置（像素） */
 	public var y(default,null) : Float;
-	/**
-		Width of the Tile.
-		Not guaranteed to represent real width of the Tile on texture. (see `Tile.scaleToSize`)
-
-		Cannot be modified directly, use `Tile.setSize` instead.
-	**/
+	/** Tile 宽度（像素） */
 	public var width(default,null) : Float;
-	/**
-		Height of the Tile.
-		Not guaranteed to represent real height of the Tile on texture. (see `Tile.scaleToSize`)
-
-		Cannot be modified directly, use `Tile.setSize` instead.
-	**/
+	/** Tile 高度（像素） */
 	public var height(default,null) : Float;
 
-	/**
-		The flip state of the Tile.
-		@see `Tile.flipX`
-	**/
+	/** 水平翻转 */
 	public var xFlip(get,set) : Bool;
-	/**
-		The flip state of the Tile.
-		@see `Tile.flipY`
-	**/
+	/** 垂直翻转 */
 	public var yFlip(get,set) : Bool;
 
-	/**
-		An integer horizontal position of the Tile on the Texture.
-		Alias to `Math.floor(tile.x)`.
-	**/
+	/** X 位置取整 */
 	public var ix(get,never) : Int;
 	inline function get_ix() return Math.floor(x);
 
-	/**
-		An integer vertical position of the Tile on the Texture.
-		Alias to `Math.floor(tile.y)`.
-	**/
+	/** Y 位置取整 */
 	public var iy(get,never) : Int;
 	inline function get_iy() return Math.floor(y);
 
-	/**
-		An integer width of the Tile.
-		Alias to `Math.ceil(tile.width + tile.x) - tile.ix`.
-	**/
+	/** 宽度取整 */
 	public var iwidth(get,never) : Int;
 	inline function get_iwidth() return Math.ceil(width + x) - ix;
 
-	/**
-		An integer height of the Tile.
-		Alias to `Math.ceil(tile.height + tile.y) - tile.iy`.
-	**/
+	/** 高度取整 */
 	public var iheight(get,never) : Int;
 	inline function get_iheight() return Math.ceil(height + y) - iy;
 

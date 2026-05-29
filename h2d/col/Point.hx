@@ -2,105 +2,83 @@ package h2d.col;
 import hxd.Math;
 
 /**
-	A simple 2D position/vector container.
-	@see `h2d.col.IPoint`
-**/
+ * 2D 点/向量
+ *
+ * 简单的 2D 位置/向量容器。
+ * 使用 PointImpl + Point（抽象转发）模式，
+ * 支持值类型语义和运算符重载。
+ *
+ * 关键方法：
+ * - 向量运算：add/sub/dot/cross/length/normalize
+ * - 矩阵变换：transform/transformed/transform2x2
+ * - 几何：rotate/getRotation/lerp
+ * - 转换：toIPoint（转整数点）
+ */
 class PointImpl #if apicheck implements h2d.impl.PointApi<Point,Matrix> #end {
 
-	/**
-		The horizontal position of the point.
-	**/
+	/** X 坐标 */
 	public var x : Float;
-	/**
-		The vertical position of the point.
-	**/
+	
+	/** Y 坐标 */
 	public var y : Float;
 
-	// -- gen api
-
-	/**
-		Create a new Point instance.
-		@param x The horizontal position of the point.
-		@param y The vertical position of the point.
-	**/
 	public inline function new(x = 0., y = 0.) {
 		this.x = x;
 		this.y = y;
 	}
 
-	/**
-		Returns squared distance between this Point and given Point `p`.
-	**/
+	/** 到点 p 的平方距离 */
 	public inline function distanceSq( p : Point ) {
 		var dx = x - p.x;
 		var dy = y - p.y;
 		return dx * dx + dy * dy;
 	}
 
-	/**
-		Returns a distance between this Point and given Point `p`.
-	**/
+	/** 到点 p 的距离 */
 	public inline function distance( p : Point ) : Float {
 		return Math.sqrt(distanceSq(p));
 	}
 
-	@:dox(hide)
 	public function toString() : String {
 		return "{" + Math.fmt(x) + "," + Math.fmt(y) + "}";
 	}
 
-	/**
-		Substracts Point `p` from this Point and returns new Point with the result.
-	**/
+	/** 向量减法：返回 this - p */
 	public inline function sub( p : Point ) : Point {
 		return new Point(x - p.x, y - p.y);
 	}
 
-	/**
-		Adds Point `p` to this Point and returns new Point with the result.
-	**/
+	/** 向量加法：返回 this + p */
 	public inline function add( p : Point ) : Point {
 		return new Point(x + p.x, y + p.y);
 	}
 
-	/**
-		Returns a new Point with the position of this Point multiplied by a given scalar `v`.
-	**/
+	/** 标量乘法：返回 this × v */
 	public inline function scaled( v : Float ) {
 		return new Point(x * v, y * v);
 	}
 
-	/**
-		Tests if this Point position equals to `other` Point position.
-	**/
+	/** 判断与另一点是否相等 */
 	public inline function equals( other : Point ) : Bool {
 		return x == other.x && y == other.y;
 	}
 
-	/**
-		Returns a dot product between this Point and given Point `p`.
-	**/
+	/** 点积 */
 	public inline function dot( p : Point ) : Float {
 		return x * p.x + y * p.y;
 	}
 
-	/**
-		Returns squared length of this Point.
-	**/
+	/** 长度平方 */
 	public inline function lengthSq() {
 		return x * x + y * y;
 	}
 
-	/**
-		Returns length (distance to `0,0`) of this Point.
-	**/
+	/** 长度 */
 	public inline function length() : Float {
 		return Math.sqrt(lengthSq());
 	}
 
-	/**
-		Normalizes the Point.
-	**/
+	/** 归一化（原地） */
 	public inline function normalize() {
 		var k = lengthSq();
 		if( k < Math.EPSILON2 ) k = 0 else k = Math.invSqrt(k);
@@ -108,64 +86,48 @@ class PointImpl #if apicheck implements h2d.impl.PointApi<Point,Matrix> #end {
 		y *= k;
 	}
 
-	/**
-		Returns a new Point with the normalized values of this Point.
-	**/
+	/** 归一化（返回新向量） */
 	public inline function normalized() {
 		var k = lengthSq();
 		if( k < Math.EPSILON2 ) k = 0 else k = Math.invSqrt(k);
 		return new h2d.col.Point(x*k,y*k);
 	}
 
-	/**
-		Sets the Point `x,y` with given values.
-	**/
+	/** 设置 x,y */
 	public inline function set(x=0.,y=0.) {
 		this.x = x;
 		this.y = y;
 	}
 
-	/**
-		Copies `x,y` from given Point `p` to this Point.
-	**/
+	/** 从另一个点复制 */
 	public inline function load( p : h2d.col.Point ) {
 		this.x = p.x;
 		this.y = p.y;
 	}
 
-	/**
-		Multiplies `x,y` by scalar `f`.
-	**/
+	/** 标量乘法（原地） */
 	public inline function scale( f : Float ) {
 		x *= f;
 		y *= f;
 	}
 
-	/**
-		Returns a copy of this Point.
-	**/
+	/** 克隆 */
 	public inline function clone() : Point {
 		return new Point(x, y);
 	}
 
-	/**
-		Returns a cross product between this Point and a given Point `p`.
-	**/
+	/** 2D 叉积（返回标量，即 z 分量） */
 	public inline function cross( p : Point ) {
 		return x * p.y - y * p.x;
 	}
 
-	/**
-		Sets this Point position to a result of linear interpolation between Points `p1` and `p2` at the interpolant position `k`.
-	**/
+	/** 线性插值：this = lerp(a, b, k) */
 	public inline function lerp( a : Point, b : Point, k : Float ) {
 		x = hxd.Math.lerp(a.x, b.x, k);
 		y = hxd.Math.lerp(a.y, b.y, k);
 	}
 
-	/**
-		Applies a given Matrix `m` transformation to this Point position.
-	**/
+	/** 用 2x3 矩阵变换（仿射变换） */
 	public inline function transform( m : Matrix ) {
 		var mx = m.a * x + m.c * y + m.x;
 		var my = m.b * x + m.d * y + m.y;
@@ -173,18 +135,14 @@ class PointImpl #if apicheck implements h2d.impl.PointApi<Point,Matrix> #end {
 		this.y = my;
 	}
 
-	/**
-		Returns a new Point with a result of applying a Matrix `m` to this Point position.
-	**/
+	/** 用 2x3 矩阵变换（返回新点） */
 	public inline function transformed( m : Matrix ) {
 		var mx = m.a * x + m.c * y + m.x;
 		var my = m.b * x + m.d * y + m.y;
 		return new Point(mx,my);
 	}
 
-	/**
-		Applies a given 2x2 Matrix `m` transformation to this Point position.
-	**/
+	/** 用 2x2 矩阵变换（不含平移） */
 	public inline function transform2x2( m : Matrix ) {
 		var mx = m.a * x + m.c * y;
 		var my = m.b * x + m.d * y;
@@ -192,28 +150,19 @@ class PointImpl #if apicheck implements h2d.impl.PointApi<Point,Matrix> #end {
 		this.y = my;
 	}
 
-	/**
-		Returns a new Point with a result of applying a 2x2 Matrix `m` to this Point position.
-	**/
+	/** 用 2x2 矩阵变换（返回新点） */
 	public inline function transformed2x2( m : Matrix ) {
 		var mx = m.a * x + m.c * y;
 		var my = m.b * x + m.d * y;
 		return new Point(mx,my);
 	}
 
-
-	// -- end
-
-	/**
-		Converts this point to integer point scaled by provided scalar `scale` (rounded).
-	**/
+	/** 转换为整数点（带缩放） */
 	public inline function toIPoint( scale = 1. ) {
 		return new IPoint(Math.round(x * scale), Math.round(y * scale));
 	}
 
-	/**
-		Rotates this Point around `0,0` by a given `angle`.
-	**/
+	/** 绕原点旋转指定角度 */
 	public inline function rotate( angle : Float ) {
 		var c = Math.cos(angle);
 		var s = Math.sin(angle);
@@ -223,10 +172,7 @@ class PointImpl #if apicheck implements h2d.impl.PointApi<Point,Matrix> #end {
 		y = y2;
 	}
 
-	/**
-		Get the angle in radians between the vector (1, 0) and this Point.
-		The angle returned is [-π, π]
-	**/
+	/** 获取与 (1,0) 方向的夹角（弧度），范围 [-π, π] */
 	public inline function getRotation() : Float {
 		var dot = new h2d.col.Point(1, 0).dot(this.normalized());
 		var sign = (x >= 0 && y >= 0) || (x < 0 && y >= 0) ? 1 : -1;
@@ -234,6 +180,10 @@ class PointImpl #if apicheck implements h2d.impl.PointApi<Point,Matrix> #end {
 	}
 }
 
+/**
+ * 2D 点抽象类型
+ * 支持运算符重载：a+b, a-b, a*b(矩阵), a*b(标量)
+ */
 @:forward abstract Point(PointImpl) from PointImpl to PointImpl {
 
 	public inline function new(x=0.,y=0.) {

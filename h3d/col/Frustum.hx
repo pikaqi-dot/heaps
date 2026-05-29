@@ -1,14 +1,32 @@
 package h3d.col;
 
+/**
+ * 视锥体（Frustum）
+ *
+ * 由 6 个平面（左/右/顶/底/近/远）围成的平截头体。
+ * 用于视锥体裁剪（Frustum Culling），判断对象是否在相机视野内。
+ *
+ * 每个平面对应相机空间中的一个裁剪边界。
+ * 平面方程：P = { n | n·X - d = 0 }
+ * 点在平面正面（视野内）：n·X - d >= 0
+ *
+ * 从 MVP 矩阵提取平面的方法（Gribb-Hartmann 算法）：
+ * 左平面 = 第4行 + 第1行
+ * 右平面 = 第4行 - 第1行
+ * 底平面 = 第4行 + 第2行
+ * 顶平面 = 第4行 - 第2行
+ * 近平面 = 第3行
+ * 远平面 = 第4行 - 第3行
+ */
 class Frustum {
 
-	public var pleft : Plane;
-	public var pright : Plane;
-	public var ptop : Plane;
-	public var pbottom : Plane;
-	public var pnear : Plane;
-	public var pfar : Plane;
-	public var checkNearFar : Bool = true;
+	public var pleft : Plane;    // 左平面
+	public var pright : Plane;   // 右平面
+	public var ptop : Plane;     // 顶平面
+	public var pbottom : Plane;  // 底平面
+	public var pnear : Plane;    // 近平面
+	public var pfar : Plane;     // 远平面
+	public var checkNearFar : Bool = true;  // 是否检查近/远平面
 
 	public function new( ?mvp : h3d.Matrix ) {
 		pleft = Plane.X();
@@ -33,6 +51,10 @@ class Frustum {
 		return f;
 	}
 
+	/**
+	 * 从 MVP 矩阵加载视锥体平面
+	 * 从矩阵的行组合提取 6 个平面的方程系数
+	 */
 	public function loadMatrix( mvp : h3d.Matrix ) {
 		pleft.load(Plane.frustumLeft(mvp));
 		pright.load(Plane.frustumRight(mvp));
@@ -48,6 +70,10 @@ class Frustum {
 		pfar.normalize();
 	}
 
+	/**
+	 * 用矩阵对视锥体进行变换
+	 * 使用逆矩阵的转置（Inverse Transpose）变换每个平面
+	 */
 	public function transform( m : h3d.Matrix ) @:privateAccess {
 		var m2 = new h3d.Matrix();
 		m2.initInverse(m);
@@ -68,6 +94,7 @@ class Frustum {
 		pfar.normalize();
 	}
 
+	/** 用 3x3 矩阵变换视锥体（不含平移） */
 	public function transform3x3( m : h3d.Matrix ) @:privateAccess {
 		var m2 = new h3d.Matrix();
 		m2.initInverse3x3(m);
@@ -88,6 +115,10 @@ class Frustum {
 		pfar.normalize();
 	}
 
+	/**
+	 * 检测点是否在视锥体内
+	 * 点在所有 6 个平面的正面才算在视锥体内
+	 */
 	public function hasPoint( p : Point ) {
 		if( pleft.distance(p) < 0 ) return false;
 		if( pright.distance(p) < 0 ) return false;

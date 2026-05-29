@@ -1,25 +1,19 @@
 package h3d;
 
+/**
+ * 缓冲区标志位
+ * 控制 GPU 缓冲区的创建和使用方式
+ */
 enum BufferFlag {
-	/**
-		Indicate that the buffer content will be often modified.
-	**/
+	/** 动态缓冲区：内容将频繁更新 */
 	Dynamic;
-	/**
-		Used internaly
-	**/
+	/** 内部使用：不实际分配 GPU 内存 */
 	NoAlloc;
-	/**
-		Used for shader input buffer
-	**/
+	/** 统一缓冲区：用于着色器常量输入 */
 	UniformBuffer;
-	/**
-		Can be written
-	**/
+	/** 读写缓冲区：GPU 可读写（用于计算着色器） */
 	ReadWriteBuffer;
-	/**
-		Used as index buffer
-	**/
+	/** 索引缓冲区：用作索引缓冲 */
 	IndexBuffer;
 }
 

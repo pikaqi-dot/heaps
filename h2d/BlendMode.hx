@@ -1,59 +1,38 @@
 package h2d;
 
 /**
-	The blending rules when rendering a Tile/Material.
-**/
+ * 混合模式（Blend Mode）
+ *
+ * 渲染 Tile/Material 时控制源颜色（Src）与目标颜色（Dst）的混合方式。
+ * 混合公式：Out = Src × SrcFactor + Dst × DstFactor
+ *
+ * - Src：当前绘制的像素颜色
+ * - Dst：帧缓冲区中已有的像素颜色
+ * - SrcA/Srb：源颜色的 Alpha 通道/RGB 亮度
+ */
 enum BlendMode {
-	/**
-		`Out = 1 * Src + 0 * Dst`
-	**/
+	/** 不混合：Out = Src（完全不透明） */
 	None;
-	/**
-		`Out = SrcA * Src + (1 - SrcA) * Dst`
-	**/
+	/** Alpha 透明混合：Out = SrcA×Src + (1-SrcA)×Dst（最常见） */
 	Alpha;
-	/**
-		`Out = SrcA * Src + 1 * Dst`
-	**/
+	/** 叠加：Out = SrcA×Src + 1×Dst（发光效果） */
 	Add;
-	/**
-		`Out = Src + (1 - SrcA) * Dst`
-	**/
+	/** Alpha 叠加：Out = Src + (1-SrcA)×Dst */
 	AlphaAdd;
-	/**
-		`Out = (1 - Dst) * Src + 1 * Dst`
-	**/
+	/** 柔和叠加：Out = (1-Dst)×Src + 1×Dst */
 	SoftAdd;
-	/**
-		`Out = Dst * Src + 0 * Dst`
-	**/
+	/** 相乘：Out = Dst×Src + 0（暗色调效果） */
 	Multiply;
-	/**
-		`Out = Dst * Src + (1 - SrcA) * Dst`
-	**/
+	/** Alpha 相乘：Out = Dst×Src + (1-SrcA)×Dst */
 	AlphaMultiply;
-	/**
-		`Out = 0 * Src + (1 - Srb) * Dst`
-	**/
+	/** 擦除：Out = 0×Src + (1-SrcA)×Dst */
 	Erase;
-	/**
-		`Out = 1 * Src + (1 - Srb) * Dst`
-	**/
+	/** 滤色：Out = 1×Src + (1-SrcA)×Dst（亮色调效果） */
 	Screen;
-	/**
-		`Out = 1 * Dst - SrcA * Src`
-	**/
+	/** 相减：Out = 1×Dst - SrcA×Src */
 	Sub;
-	/**
-		The output color is the max of the source and dest colors.  
-		The blend parameters Src and Dst are ignored for this equation.  
-		`Out = MAX( Src, Dst )`
-	**/
+	/** 取最大值：Out = MAX(Src, Dst) */
 	Max;
-	/**
-		The output color is the min of the source and dest colors.  
-		The blend parameters Src and Dst are ignored for this equation.  
-		`Out = MAX( Src, Dst )`
-	**/
+	/** 取最小值：Out = MIN(Src, Dst) */
 	Min;
 }

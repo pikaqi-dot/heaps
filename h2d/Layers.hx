@@ -1,21 +1,28 @@
 package h2d;
 
 /**
-	A layer-based container for Objects.
-
-	Hierarchically organizes objects based on their layer.
-	Supports per-layer Y-sorting through `Layers.ysort`.
-**/
+ * 图层容器（Layers）
+ *
+ * 基于图层的对象容器。将子对象按图层组织，支持每个图层的 Y 排序。
+ *
+ * 图层索引说明：
+ * - 0 = 最底层
+ * - 层数按需自动增长
+ * - -1 = 顶层
+ *
+ * 支持 per-layer Y-sorting（通过 ysort 方法），
+ * 可用于实现 2D 游戏中的深度排序效果（如俯视角 RPG 的角色排序）
+ */
 class Layers extends Object {
 
-	// the per-layer insert position
+	// 每层的插入位置索引
 	var layersIndexes : Array<Int>;
 	var layerCount : Int;
 
 	/**
-		Create a new Layers instance.
-		@param parent An optional parent `h2d.Object` instance to which Layers adds itself if set.
-	**/
+	 * 创建 Layers 实例
+	 * @param parent 可选的父对象
+	 */
 	public function new(?parent) {
 		super(parent);
 		layersIndexes = [];
@@ -23,23 +30,23 @@ class Layers extends Object {
 	}
 
 	/**
-		Adds a child object `s` at the end of the topmost layer.
-		@param s An object to be added.
-	**/
+	 * 在顶层末尾添加子对象
+	 * @param s 要添加的对象
+	 */
 	@:dox(show)
 	override function addChild(s) {
 		add(s, -1);
 	}
 
 	/**
-	 * Adds a child object `s` at the end of the given `layer`.
-	 * @param s An object to be added.
-	 * @param layer An index of the layer the object should be added at with 0 being the bottom-most layer. Pass -1 to use topmost layer.
-	 * @param index An optional index at which the object should be inserted inside the layer. Pass -1 to append to the end.
+	 * 在指定图层的指定位置添加子对象
+	 * @param s 要添加的对象
+	 * @param layer 图层索引（0=最底层，-1=顶层）
+	 * @param index 层内插入位置（-1=末尾）
 	 */
 	public function add( s : Object, layer : Int = -1, index : Int = -1) {
 		if ( s.parent == this ) {
-			// prevent calling onRemove
+			// 防止触发 onRemove
 			var old = s.allocated;
 			s.allocated = false;
 			removeChild(s);
@@ -48,15 +55,15 @@ class Layers extends Object {
 
 		if ( layer == -1 ) layer = layerCount == 0 ? 0 : layerCount - 1;
 
-		// Populate layer list
+		// 按需扩展图层列表
 		while ( layer >= layerCount )
 			layersIndexes[layerCount++] = children.length;
 		
 		if ( index != -1 ) {
-			// Prevent inserting out of layer bounds.
+			// 防止插入超出图层边界
 			if ( layer == 0 )
 				super.addChildAt(s, hxd.Math.imax(0, hxd.Math.imin(index, layersIndexes[layer])));
-			else if ( index < 0 ) // clamp 0..
+			else if ( index < 0 )
 				super.addChildAt(s, layersIndexes[layer - 1]);
 			else // clamp ..layerSize
 				super.addChildAt(s, hxd.Math.imin(layersIndexes[layer - 1] + index, layersIndexes[layer]));

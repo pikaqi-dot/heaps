@@ -1,11 +1,23 @@
 package h2d;
 
+/**
+ * 视口栈条目类型
+ * 包含 2x3 仿射变换矩阵分量 (va,vb,vc,vd) 和偏移 (vx,vy)
+ */
 private typedef ViewportStackEntry = {
 	va : Float, vb : Float, vc : Float, vd : Float, vx : Float, vy : Float
 };
+
+/**
+ * 相机栈条目（包含视口变换和相机引用）
+ */
 private typedef CameraStackEntry = ViewportStackEntry & {
 	camera: h2d.Camera
 };
+
+/**
+ * 渲染目标栈条目（包含纹理、裁剪区域等）
+ */
 private typedef TargetStackEntry = ViewportStackEntry & {
 	t : h3d.mat.Texture, hasRZ : Bool, rzX:Float, rzY:Float, rzW:Float, rzH:Float
 };
@@ -14,64 +26,61 @@ private typedef RenderZoneStack = { hasRZ:Bool, x:Float, y:Float, w:Float, h:Flo
 private typedef FilterStack = { spr: h2d.Object, scaleX:Float, scaleY:Float };
 
 /**
-	A 2D scene renderer.
-
-	Passed during `Object.sync` and `Object.drawRec` and can be accessed directly via `Scene.renderer`.
-**/
+ * 2D 场景渲染上下文
+ *
+ * 在 `Object.sync` 和 `Object.drawRec` 期间传递的渲染状态。
+ * 可通过 `Scene.renderer` 直接访问。
+ *
+ * 功能：
+ * - 管理渲染状态栈（视口、相机、渲染目标、滤镜）
+ * - 全局 Alpha 透明度
+ * - Tile 发射（emitTile）/绘制
+ * - 滤镜渲染
+ * - 回调接口（onBeginDraw/onEnterFilter/onLeaveFilter）
+ */
 @:access(h2d.Scene)
 class RenderContext extends h3d.impl.RenderContext {
 
+	/**
+	 * 是否启用 Tile 缓冲发射模式
+	 * 通过编译标志 heaps_emit_tile_buffering 控制
+	 */
 	static inline var BUFFERING = #if heaps_emit_tile_buffering true #else false #end;
 
-	/**
-		Current transparency value used for rendering objects.
-		Automatically managed by `Object`.
-	**/
+	/** 当前全局透明度（由 Object 自动管理） */
 	public var globalAlpha = 1.;
-	/**
-		Temporary vertex buffer used to emit Tiles when `RenderContext.BUFFERING` is on.
-		Otherwise it's `null`. Internal usage only.
-	**/
+	
+	/** 临时顶点缓冲（BUFFERING 模式下使用） */
 	@:dox(hide)
 	public var buffer : hxd.FloatBuffer;
-	/**
-		Current temporary buffer position. Internal usage only.
-	**/
+	
+	/** 临时缓冲写入位置 */
 	@:dox(hide)
 	public var bufPos : Int;
-	/**
-		The 2D scene attached to this RenderContext instance.
-	**/
+	
+	/** 该渲染上下文关联的 2D 场景 */
 	public var scene : h2d.Scene;
+	
 	/**
-		<span class="label">Internal usage</span>
-
-		Determines texture filtering method (Linear or Nearest).
-		Not recommended to use - assign `Scene.defaultSmooth` instead.
-	**/
+	 * 默认纹理过滤模式
+	 * true=线性过滤（平滑），false=最近邻（像素风）
+	 * 建议使用 Scene.defaultSmooth 替代
+	 */
 	public var defaultSmooth : Bool = false;
-	/**
-		When enabled, pixels with alpha value below 0.001 will be discarded.
-	**/
+	
+	/** 是否裁剪 Alpha < 0.001 的像素 */
 	public var killAlpha : Bool;
-	/**
-		When enabled, causes `Object` to render its children in reverse order.
-	**/
+	
+	/** 是否反向渲染子对象（从后往前） */
 	public var front2back : Bool;
 
-	/**
-		Sent before Drawable is rendered.
-		Drawable won't be rendered if callback returns `false`.
-	**/
+	/** Drawable 渲染前回调。返回 false 则跳过该 Drawable */
 	public var onBeginDraw : h2d.Drawable->Bool;
-	/**
-		Sent before filter begins rendering.
-		Filter (and it's object tree) won't be rendered if callback returns `false`.
-	**/
+	
+	/** 滤镜渲染前回调。返回 false 则跳过该滤镜 */
 	public var onEnterFilter : h2d.Object->Bool;
-	/**
-		Send after filter has been rendered.
-	**/
+	
+	/** 滤镜渲染后回调 */
 	public var onLeaveFilter : h2d.Object->Void;
 
 	/**

@@ -1,40 +1,40 @@
 package h2d;
 
 /**
-	Displays a single bitmap Tile on the screen.
-
-	It is a most primitive Drawable and easiest to use, but vastly inferior to others in terms of performance when used for rendering of many tiles.
-	When dealing with many images at once, it is recommended to use batched renderers, like `h2d.SpriteBatch` or `h2d.TileGroup`.
-**/
+ * 位图（Bitmap）
+ *
+ * 在屏幕上显示单个 Tile 的最简单的 Drawable。
+ * 适合显示少量图像，对于大量图像请使用 `h2d.SpriteBatch` 或 `h2d.TileGroup`。
+ *
+ * 功能：
+ * - 显示一个 Tile（纹理区域）
+ * - 可设置目标宽度/高度（自动保持宽高比）
+ * - tile 为 null 时显示粉色占位图
+ */
 class Bitmap extends Drawable {
 
-	/**
-		The tile to display. See `h2d.Tile` documentation for details.
-		If the tile is null, a pink 5x5 bitmap will be displayed instead.
-	**/
+	/** 要显示的 Tile。为 null 时显示粉色 5×5 位图 */
 	public var tile(default,set) : Tile;
 
 	/**
-		If set, rescale the tile to match the given width, keeping the aspect ratio unless `height` is also set.
-
-		Note that both `width` and `height` are `null` by default and in order to retrieve bitmap dimensions with
-		scaling accurately, call `getSize` method or address `tile.width/height` to get unscaled dimensions.
-	**/
+	 * 目标宽度
+	 * 设置后 Tile 将缩放到此宽度（保持宽高比）
+	 * 除非同时设置 height
+	 */
 	public var width(default,set) : Null<Float>;
 
 	/**
-		If set, rescale the tile to match the given height, keeping the aspect ratio unless `width` is also set.
-
-		Note that both `width` and `height` are `null` by default and in order to retrieve bitmap dimensions with
-		scaling accurately, call `getSize` method or address `tile.width/height` to get unscaled dimensions.
-	**/
+	 * 目标高度
+	 * 设置后 Tile 将缩放到此高度（保持宽高比）
+	 * 除非同时设置 width
+	 */
 	public var height(default,set) : Null<Float>;
 
 	/**
-		Create a Bitmap with specified tile and parent object.
-		@param tile A Tile that should be rendered by this Bitmap.
-		@param parent An optional parent `h2d.Object` instance to which Bitmap adds itself if set.
-	**/
+	 * 创建 Bitmap
+	 * @param tile 要显示的 Tile
+	 * @param parent 可选的父对象
+	 */
 	public function new( ?tile : Tile, ?parent : h2d.Object ) {
 		super(parent);
 		this.tile = tile;
@@ -46,7 +46,9 @@ class Bitmap extends Drawable {
 			if( width == null && height == null )
 				addBounds(relativeTo, out, tile.dx, tile.dy, tile.width, tile.height);
 			else
-				addBounds(relativeTo, out, tile.dx, tile.dy, width != null ? width : tile.width * height / tile.height, height != null ? height : tile.height * width / tile.width);
+				addBounds(relativeTo, out, tile.dx, tile.dy,
+					width != null ? width : tile.width * height / tile.height,
+					height != null ? height : tile.height * width / tile.width);
 		}
 	}
 
@@ -71,21 +73,25 @@ class Bitmap extends Drawable {
 		return t;
 	}
 
+	/**
+	 * 渲染位图
+	 * 处理缩放逻辑：如果设置了 width/height，临时修改 Tile 大小再渲染
+	 */
 	override function draw( ctx : RenderContext ) {
 		if( width == null && height == null ) {
-			emitTile(ctx,tile);
+			emitTile(ctx, tile);
 			return;
 		}
-		if( tile == null ) tile = h2d.Tile.fromColor(0xFF00FF);
+		if( tile == null ) tile = h2d.Tile.fromColor(0xFF00FF);  // 粉色占位
 		var ow = tile.width;
 		var oh = tile.height;
 		@:privateAccess {
 			tile.width = width != null ? width : ow * height / oh;
 			tile.height = height != null ? height : oh * width / ow;
 		}
-		emitTile(ctx,tile);
+		emitTile(ctx, tile);
 		@:privateAccess {
-			tile.width = ow;
+			tile.width = ow;   // 恢复原始尺寸
 			tile.height = oh;
 		}
 	}

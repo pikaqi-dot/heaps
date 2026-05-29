@@ -1,5 +1,9 @@
 package h3d.pass;
 
+/**
+ * PassList 迭代器
+ * 遍历 PassObject 链表
+ */
 class PassListIterator {
 	var o : PassObject;
 	public inline function new(o) {
@@ -15,28 +19,44 @@ class PassListIterator {
 	}
 }
 
+/**
+ * 渲染通道列表（Pass List）
+ *
+ * 管理物体的渲染通道（Pass）链表，支持：
+ * - 通道过滤和排序
+ * - 临时丢弃通道并恢复（save/load 机制）
+ * - 惰性求值（通过 SortByMaterial 排序器）
+ *
+ * 工作流程：
+ * 1. 物体注册渲染通道到 PassList
+ * 2. 根据材质对通道进行排序
+ * 3. 遍历排序后的通道执行渲染
+ * 4. 不支持当前帧的通道被丢弃（放入 discarded 列表）
+ * 5. 下一帧通过 reset() 恢复丢弃的通道
+ */
 @:access(h3d.pass.PassObject)
 class PassList {
 
-	var current : PassObject;
-	var discarded : PassObject;
-	var lastDisc : PassObject;
+	var current : PassObject;   // 当前链表的头节点
+	var discarded : PassObject; // 被丢弃的通道链表头
+	var lastDisc : PassObject;  // 被丢弃的通道链表尾
 
 	public function new(?current) {
 		init(current);
 	}
 
 	/**
-		Set the passes and empty the discarded list
-	**/
+	 * 初始化通道列表，清空丢弃列表
+	 */
 	public inline function init(pass) {
 		current = pass;
 		discarded = lastDisc = null;
 	}
 
 	/**
-		Put back discarded passes into the pass list
-	**/
+	 * 将丢弃的通道恢复回通道列表
+	 * 用于下一帧的渲染
+	 */
 	public inline function reset() {
 		if( discarded != null ) {
 			lastDisc.next = current;
@@ -45,9 +65,7 @@ class PassList {
 		}
 	}
 
-	/**
-	 * Return the number of passes
-	 */
+	/** 返回通道数量 */
 	public inline function count() {
 		var c = current;
 		var n = 0;
@@ -59,15 +77,16 @@ class PassList {
  	}
 
 	/**
-		Save the discarded list, allow to perfom some filters, then call "load" to restore passes
-	**/
+	 * 保存当前状态（记录丢弃列表的末尾）
+	 * 允许进行一些过滤操作后，通过 load() 恢复
+	 */
 	public inline function save() {
 		return lastDisc;
 	}
 
 	/**
-		load state that was save() before
-	**/
+	 * 恢复到之前 save() 保存的状态
+	 */
 	public inline function load( p : PassObject ) {
 		if( lastDisc != p ) {
 			lastDisc.next = current;
@@ -82,13 +101,14 @@ class PassList {
 		}
 	}
 
+	/** 判断通道列表是否为空 */
 	public inline function isEmpty() {
 		return current == null;
 	}
 
 	/**
-		Put all passes into discarded list
-	**/
+	 * 将所有通道移动到丢弃列表
+	 */
 	public function clear() {
 		if( current == null )
 			return;
@@ -102,13 +122,19 @@ class PassList {
 		current = null;
 	}
 
+	/**
+	 * 对当前通道列表进行排序
+	 * @param f 比较函数（类似标准的比较器）
+	 */
 	public inline function sort( f : PassObject -> PassObject -> Int ) {
 		current = haxe.ds.ListSort.sortSingleLinked(current, f);
 	}
 
 	/**
-		Filter current passes, add results to discarded list
-	**/
+	 * 过滤当前通道列表
+	 * 满足条件的通道保留在当前列表，不满足的移动到丢弃列表
+	 * @param f 过滤函数（返回 true 表示保留）
+	 */
 	public inline function filter( f : PassObject -> Bool ) {
 		var head = null;
 		var prev = null;
@@ -117,6 +143,7 @@ class PassList {
 		var cur = current;
 		while( cur != null ) {
 			if( f(cur) ) {
+				// 保留在当前列表
 				if( head == null )
 					head = prev = cur;
 				else {
@@ -124,6 +151,7 @@ class PassList {
 					prev = cur;
 				}
 			} else {
+				// 移动到丢弃列表
 				if( disc == null )
 					disc = discQueue = cur;
 				else {
@@ -142,12 +170,13 @@ class PassList {
 		lastDisc = discQueue;
 	}
 
+	/** 获取迭代器，用于遍历当前通道列表 */
 	public inline function iterator() {
 		return new PassListIterator(current);
 	}
 
 	/**
-		Iterate on all discarded elements, if any
+		* 遍历所有被丢弃的通道元素
 	**/
 	public inline function getFiltered() {
 		return new PassListIterator(discarded);

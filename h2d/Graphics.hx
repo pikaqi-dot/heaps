@@ -5,6 +5,10 @@ import hxd.impl.Allocator;
 
 private typedef GraphicsPoint = hxd.poly2tri.Point;
 
+/**
+ * 图形点（内部类）
+ * 包含位置 (x,y) 和颜色 (r,g,b,a) 信息
+ */
 @:dox(hide)
 class GPoint {
 	public var x : Float;
@@ -27,15 +31,20 @@ class GPoint {
 	}
 }
 
+/**
+ * Graphics 内部内容类
+ * 继承自 h3d.prim.Primitive，管理实际的顶点/索引缓冲数据。
+ * 支持多种 Tile 的批处理渲染，超过 32767 顶点时自动创建新的缓冲。
+ */
 private class GraphicsContent extends h3d.prim.Primitive {
 
-	var tmp : hxd.FloatBuffer;
-	var index : hxd.IndexBuffer;
-	var state : BatchDrawState;
+	var tmp : hxd.FloatBuffer;         // 临时顶点缓冲
+	var index : hxd.IndexBuffer;        // 索引缓冲
+	var state : BatchDrawState;         // 当前批处理状态
 
 	var buffers : Array<{ buf : hxd.FloatBuffer, vbuf : h3d.Buffer, idx : hxd.IndexBuffer, ibuf : h3d.Indexes, state : BatchDrawState }>;
-	var bufferDirty : Bool;
-	var indexDirty : Bool;
+	var bufferDirty : Bool;             // 缓冲需要重新上传
+	var indexDirty : Bool;              // 索引需要重新上传
 	var allocPos : hxd.impl.AllocPos;
 
 	public function new() {
@@ -44,12 +53,14 @@ private class GraphicsContent extends h3d.prim.Primitive {
 		this.allocPos = hxd.impl.AllocPos.make();
 	}
 
+	/** 添加索引 */
 	public inline function addIndex(i) {
 		index.push(i);
 		state.add(1);
 		indexDirty = true;
 	}
 
+	/** 添加顶点（位置+UV+颜色） */
 	public inline function add( x : Float, y : Float, u : Float, v : Float, r : Float, g : Float, b : Float, a : Float ) {
 		tmp.push(x);
 		tmp.push(y);
@@ -62,10 +73,15 @@ private class GraphicsContent extends h3d.prim.Primitive {
 		bufferDirty = true;
 	}
 
+	/** 设置当前 Tile */
 	public function setTile( tile : h2d.Tile ) {
 		state.setTile(tile);
 	}
 
+	/**
+	 * 切换到下一组缓冲
+	 * 当顶点数超过 32767 (1<<15) 时自动触发
+	 */
 	public function next() {
 		var nvect = tmp.length >> 3;
 		if( nvect < 1 << 15 )
@@ -152,30 +168,36 @@ private class GraphicsContent extends h3d.prim.Primitive {
 }
 
 /**
-	A simple interface to draw arbitrary 2D geometry.
-
-	Usage notes:
-	* While Graphics allows for multiple unique textures, each texture swap causes a new drawcall,
-	and due to that it's recommended to minimize the amount of used textures per Graphics instance,
-	ideally limiting to only one texture.
-	* Due to how Graphics operate, removing them from the active `h2d.Scene` will cause a loss of all data.
-**/
+ * 矢量图形绘制接口（Graphics）
+ *
+ * 用于绘制任意 2D 几何图形的类。
+ * 支持：矩形、圆形、椭圆、圆角矩形、线条、路径、多边形填充等。
+ *
+ * 使用注意：
+ * - Graphics 支持多种纹理，但每次切换纹理都会产生一次 drawcall，
+ *   建议尽量使用单一纹理。
+ * - 从活动 Scene 中移除 Graphics 会导致所有数据丢失。
+ *
+ * 内部使用 GraphicsContent 存储顶点和索引缓冲数据。
+ * 超过 32767 顶点时会自动分块。
+ */
 class Graphics extends Drawable {
 
-	var content : GraphicsContent;
-	var tmpPoints : Array<GPoint>;
-	var pindex : Int;
-	var curR : Float;
-	var curG : Float;
-	var curB : Float;
-	var curA : Float;
-	var lineSize : Float;
-	var lineR : Float;
-	var lineG : Float;
-	var lineB : Float;
-	var lineA : Float;
-	var doFill : Bool;
+	var content : GraphicsContent;          // 内部图形内容
+	var tmpPoints : Array<GPoint>;          // 临时点数组
+	var pindex : Int;                       // 点索引
+	var curR : Float;                       // 当前填充颜色 R
+	var curG : Float;                       // 当前填充颜色 G
+	var curB : Float;                       // 当前填充颜色 B
+	var curA : Float;                       // 当前填充颜色 A
+	var lineSize : Float;                   // 线条宽度
+	var lineR : Float;                      // 线条颜色 R
+	var lineG : Float;                      // 线条颜色 G
+	var lineB : Float;                      // 线条颜色 B
+	var lineA : Float;                      // 线条颜色 A
+	var doFill : Bool;                      // 是否填充
 
+	// 边界计算
 	var xMin : Float;
 	var yMin : Float;
 	var xMax : Float;
@@ -185,6 +207,7 @@ class Graphics extends Drawable {
 	var xMaxSize : Float;
 	var yMaxSize : Float;
 
+	// 2D 变换矩阵（相对父对象）
 	var ma : Float = 1.;
 	var mb : Float = 0.;
 	var mc : Float = 0.;
@@ -193,17 +216,15 @@ class Graphics extends Drawable {
 	var my : Float = 0.;
 	var defaultTile : h2d.Tile;
 
-	/**
-		The Tile used as source of Texture to render.
-	**/
+	/** 用于渲染的 Tile（纹理） */
 	public var tile : h2d.Tile;
+	
 	/**
-		Adds bevel cut-off at line corners.
-
-		The value is a percentile in range of 0...1, dictating at which point edges get beveled based on their angle.
-		Value of 0 being not beveled and 1 being always beveled.
-	**/
-	public var bevel = 0.25; //0 = not beveled, 1 = always beveled
+	 * 线条角斜切（Bevel）
+	 * 值范围 [0,1]
+	 * 0=不斜切，1=始终斜切
+	 */
+	public var bevel = 0.25;
 
 	/**
 		Create a new Graphics instance.

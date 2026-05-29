@@ -1,58 +1,60 @@
 package h2d;
 
 /**
-	A user input handler.
-
-	Hitbox area can be a rectangle, an ellipse or an arbitrary shape (`h2d.col.Collider`).
-
-	Note that Interactive does not reports its hitbox bounds in `Object.getBounds`
-	unless `Interactive.backgroundColor` is set, in which case `width` and `height` are reported.
-
-	By default, Interactive only reacts to primary (left) mouse button for actions, see `Interactive.enableRightButton` for details.
-**/
+ * 交互事件处理器（Interactive）
+ *
+ * 处理用户输入事件（鼠标/触摸）的 2D 对象。
+ * 碰撞区域可以是矩形、椭圆或任意形状（通过 h2d.col.Collider）。
+ *
+ * 支持的事件回调（动态函数属性）：
+ * - onPush：按下
+ * - onRelease：释放
+ * - onClick：点击
+ * - onOver：悬停进入
+ * - onOut：悬停离开
+ * - onMove：鼠标移动
+ * - onWheel：滚轮
+ * - onFocus/onReleaseOutside：焦点/外部释放
+ *
+ * 注意：
+ * - Interactive 的碰撞框不通过 getBounds() 报告
+ * - 除非设置了 backgroundColor（此时报告宽高）
+ * - 默认只响应鼠标左键，详见 enableRightButton
+ */
 @:allow(h2d.Scene)
 class Interactive extends Object implements hxd.SceneEvents.Interactive {
 
-	/**
-		Width of the Interactive. Ignored if `Interactive.shape` is set.
-	**/
+	/** 交互区域宽度（设置了 shape 时忽略） */
 	public var width : Float;
-	/**
-		Height of the Interactive. Ignored if `Interactive.shape` is set.
-	**/
+	
+	/** 交互区域高度（设置了 shape 时忽略） */
 	public var height : Float;
-	/**
-		Cursor used when Interactive is under mouse cursor.
-	**/
+	
+	/** 鼠标悬停时的光标样式（默认 Button/手型） */
 	public var cursor(default,set) : Null<hxd.Cursor> = Button;
 
-	/**
-		Performs an elliptic hit-test instead of rectangular one based on `Interactive.width` and `height`. Ignored if `Interactive.shape` is set.
-	**/
+	/** 使用椭圆点击检测（基于 width/height，设置了 shape 时忽略） */
 	public var isEllipse : Bool;
-	/**
-		Set the default `hxd.Event.cancel` mode.
-	**/
+	
+	/** 事件是否取消冒泡 */
 	public var cancelEvents : Bool = false;
-	/**
-		Set the default `hxd.Event.propagate` mode.
-	**/
+	
+	/** 事件是否传播 */
 	public var propagateEvents : Bool = false;
 
 	/**
-		When enabled, interacting with secondary mouse buttons (right button/wheel) will cause `onPush`, `onClick`, `onRelease` and `onReleaseOutside` callbacks.
-		Otherwise those callbacks will only be triggered with primary mouse button (left button).
-	**/
+	 * 启用右键/滚轮触发点击回调
+	 * 启用后 onPush/onClick/onRelease 也会响应鼠标右键
+	 */
 	public var enableRightButton : Bool = false;
 
-	/**
-	 	When enabled, allows to receive several onClick events the same frame.
-	**/
+	/** 是否允许同一帧内多次 onClick */
 	public var allowMultiClick : Bool = false;
 
 	/**
-		If set, Interactive will draw a `Tile` with `[width, height]` dimensions of specified color (including alpha).
-	**/
+	 * 背景色（含 Alpha）
+	 * 设置后 Interactive 会绘制一个指定颜色的矩形 Tile
+	 */
 	public var backgroundColor : Null<Int>;
 
 	var scene : Scene;

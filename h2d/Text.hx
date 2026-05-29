@@ -1,54 +1,45 @@
 package h2d;
 
 /**
-	`Text` alignment rules.
-**/
+ * 文本对齐方式
+ *
+ * 在 h2d.Text 中控制文本的对齐规则。
+ * 分为单行对齐（Left/Right/Center）和多行对齐（MultilineRight/MultilineCenter）。
+ * 多行对齐以最宽行作为参考。
+ */
 enum Align {
-	/**
-		Aligns the text to the left edge.
-	**/
+	/** 左对齐（默认） */
 	Left;
+	
 	/**
-		Aligns the text to the right edge.
-
-		When `Text.maxWidth` is set and/or Text size is constrained (see `Object.constraintSize`), right edge is considered the smallest of the two.
-
-		Otherwise edge is at the `0` coordinate of the Text instance.
-
-		See Text sample for showcase.
-	**/
+	 * 右对齐
+	 *
+	 * 当设置了 maxWidth 或约束大小时，右边缘取 maxWidth 和约束中较小的值。
+	 * 否则右边缘在 Text 实例的 0 坐标处。
+	 */
 	Right;
+	
 	/**
-		Centers the text alignment.
-
-		When `Text.maxWidth` is set and/or Text size is constrained (see `Object.constraintSize`), center is calculated from 0 to the smallest of the two.
-
-		Otherwise text is centered around `0` coordinate of the Text instance.
-
-		See Text sample for showcase.
-	**/
+	 * 居中对齐
+	 *
+	 * 当设置了 maxWidth 或约束大小时，从 0 到两者中较小值计算居中。
+	 * 否则以 Text 实例的 0 坐标为中心。
+	 */
 	Center;
+	
 	/**
-		With respect to Text constraints, aligns the text to the right edge of the longest line width.
-
-		When `Text.maxWidth` is set and/or Text size is constrained (see `Object.constraintSize`),
-		right edge is calculated as the smallest value of the `maxWidth`, constrained width and longest line width (after word-wrap from constraints).
-
-		Otherwise uses longest line width as the right edge.
-
-		See Text sample for showcase.
-	**/
+	 * 多行右对齐
+	 *
+	 * 以最宽行的右边缘为基准对齐。
+	 * 当设置了 maxWidth 或约束时，取 maxWidth、约束宽度和最宽行中的最小值。
+	 */
 	MultilineRight;
+	
 	/**
-		Centers the text with respect to Text constraints with the longest line width.
-
-		When `Text.maxWidth` is set and/or Text size is constrained (see `Object.constraintSize`),
-		center is calculated from the to the smallest value of the `maxWidth`, constrained width and longest line width (after word-wrap from constraints).
-
-		Otherwise calculates center from 0 to the longest line width.
-
-		See Text sample for showcase.
-	**/
+	 * 多行居中对齐
+	 *
+	 * 以最宽行宽度计算居中位置。
+	 */
 	MultilineCenter;
 }
 

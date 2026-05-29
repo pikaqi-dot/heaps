@@ -1,15 +1,30 @@
 package h3d.col;
 import hxd.Math;
 
+/**
+ * AABB 包围盒（Axis-Aligned Bounding Box）
+ *
+ * 轴对齐包围盒是最常用的碰撞体之一，由最小点和最大点定义。
+ * 由于与坐标轴对齐，碰撞检测计算效率很高。
+ *
+ * 用于：
+ * - 场景对象的包围盒
+ * - 视锥体裁剪
+ * - 射线拾取
+ * - 空间划分（如 BSP/八叉树）
+ *
+ * 注意：AABB 不随对象旋转，旋转后需要重新计算
+ */
 class Bounds extends Collider {
 
-	public var xMin : Float;
-	public var xMax : Float;
-	public var yMin : Float;
-	public var yMax : Float;
-	public var zMin : Float;
-	public var zMax : Float;
+	public var xMin : Float;  // X 轴最小坐标
+	public var xMax : Float;  // X 轴最大坐标
+	public var yMin : Float;  // Y 轴最小坐标
+	public var yMax : Float;  // Y 轴最大坐标
+	public var zMin : Float;  // Z 轴最小坐标
+	public var zMax : Float;  // Z 轴最大坐标
 
+	// 各轴尺寸（便捷属性）
 	public var xSize(get,set) : Float;
 	public var ySize(get,set) : Float;
 	public var zSize(get,set) : Float;
@@ -18,18 +33,28 @@ class Bounds extends Collider {
 		empty();
 	}
 
+	/**
+	 * 检测是否在视锥体内
+	 * 注意：不支持 localMatrix 参数（抛出异常）
+	 */
 	public inline function inFrustum( f : Frustum, ?m: h3d.Matrix ) {
 		if( m != null )
 			throw "Not implemented";
 		return f.hasBounds(this);
 	}
 
+	/** 检测球体是否与包围盒相交 */
 	public inline function inSphere( s : Sphere ) {
 		var c = new Point(s.x,s.y,s.z);
 		var p = new Point(Math.max(xMin, Math.min(s.x, xMax)), Math.max(yMin, Math.min(s.y, yMax)), Math.max(zMin, Math.min(s.z, zMax)));
 		return c.distanceSq(p) < s.r*s.r;
 	}
 
+	/**
+	 * 平面测试（用于视锥体裁剪）
+	 * 使用 P 轴方法（Projection Axis Method）
+	 * 返回中心到平面的距离 + 投影半径
+	 */
 	inline function testPlane( p : Plane ) {
 		var a = p.nx;
 		var b = p.ny;
@@ -42,6 +67,11 @@ class Bounds extends Collider {
 		return dd + rr - p.d*2;
 	}
 
+	/**
+	 * 射线与 AABB 相交检测
+	 * 使用 Slab 方法（分离轴测试）
+	 * 对每个轴计算进入/离开时间，取交集
+	 */
 	public function rayIntersection( r : Ray, bestMatch : Bool ) : Float {
 		var minTx = (xMin - r.px) / r.lx;
 		var minTy = (yMin - r.py) / r.ly;
@@ -66,28 +96,31 @@ class Bounds extends Collider {
 	}
 
 	/**
-	 * Check if the camera model-view-projection Matrix intersects with the Bounds. Returns -1 if outside, 0 if intersects and 1 if fully inside.
-	 * @param	mvp : the model-view-projection matrix to test against
-	 * @param	checkZ : tells if we will check against the near/far plane
+	 * 详细的视锥体裁剪检测
+	 * 使用 6 个平面（左/右/底/顶/近/远）分别测试
+	 *
+	 * @param	mvp 模型-视图-投影矩阵
+	 * @param	checkZ 是否检测近/远平面
+	 * @return	-1=完全在视锥体外, 0=部分相交, 1=完全在视锥体内
 	 */
 	public function inFrustumDetails( mvp : Matrix, checkZ = true ) {
 		var ret = 1;
 
-		// left
+		// 左平面
 		var p = new Plane(mvp._14 + mvp._11, mvp._24 + mvp._21 , mvp._34 + mvp._31, mvp._44 + mvp._41);
 		var m = p.nx * (p.nx > 0 ? xMax : xMin) + p.ny * (p.ny > 0 ? yMax : yMin) + p.nz * (p.nz > 0 ? zMax : zMin);
 		if( m + p.d < 0 )
 			return -1;
 		var n = p.nx * (p.nx > 0 ? xMin : xMax) + p.ny * (p.ny > 0 ? yMin : yMax) + p.nz * (p.nz > 0 ? zMin : zMax);
 		if( n + p.d < 0 ) ret = 0;
-		// right
+		// 右平面
 		var p = new Plane(mvp._14 - mvp._11, mvp._24 - mvp._21 , mvp._34 - mvp._31, mvp._44 - mvp._41);
 		var m = p.nx * (p.nx > 0 ? xMax : xMin) + p.ny * (p.ny > 0 ? yMax : yMin) + p.nz * (p.nz > 0 ? zMax : zMin);
 		if( m + p.d < 0 )
 			return -1;
 		var n = p.nx * (p.nx > 0 ? xMin : xMax) + p.ny * (p.ny > 0 ? yMin : yMax) + p.nz * (p.nz > 0 ? zMin : zMax);
 		if( n + p.d < 0 ) ret = 0;
-		// bottom
+		// 底平面
 		var p = new Plane(mvp._14 + mvp._12, mvp._24 + mvp._22 , mvp._34 + mvp._32, mvp._44 + mvp._42);
 		var m = p.nx * (p.nx > 0 ? xMax : xMin) + p.ny * (p.ny > 0 ? yMax : yMin) + p.nz * (p.nz > 0 ? zMax : zMin);
 		if( m + p.d < 0 )
@@ -95,7 +128,7 @@ class Bounds extends Collider {
 		var n = p.nx * (p.nx > 0 ? xMin : xMax) + p.ny * (p.ny > 0 ? yMin : yMax) + p.nz * (p.nz > 0 ? zMin : zMax);
 		if( n + p.d < 0 ) ret = 0;
 
-		// top
+		// 顶平面
 		var p = new Plane(mvp._14 - mvp._12, mvp._24 - mvp._22 , mvp._34 - mvp._32, mvp._44 - mvp._42);
 		var m = p.nx * (p.nx > 0 ? xMax : xMin) + p.ny * (p.ny > 0 ? yMax : yMin) + p.nz * (p.nz > 0 ? zMax : zMin);
 		if( m + p.d < 0 )

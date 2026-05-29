@@ -1,12 +1,18 @@
 package h3d.anim;
 
+/**
+ * 动画对象（Animated Object）
+ *
+ * 代表动画中一个被驱动的对象，通过 objectName 与场景中的 Object 关联。
+ * 支持骨骼动画（Skin）和关节索引。
+ */
 class AnimatedObject {
 
-	public var objectName : String;
+	public var objectName : String;  // 对象名称（用于匹配场景中的对象）
 	#if !(dataOnly || macro)
-	public var targetObject : h3d.scene.Object;
-	public var targetSkin : h3d.scene.Skin;
-	public var targetJoint : Int;
+	public var targetObject : h3d.scene.Object;  // 目标场景对象
+	public var targetSkin : h3d.scene.Skin;      // 目标骨骼
+	public var targetJoint : Int;                // 目标关节索引
 	#end
 
 	public function new(name) {
@@ -19,37 +25,58 @@ class AnimatedObject {
 
 }
 
+/**
+ * 动画事件类型
+ * 在特定帧触发的命名事件，通常从 FBX 等动画源文件导入
+ */
 typedef Event = {
-	name : String,
-	frame : Int,
-	?originalEvent : Event
+	name : String,          // 事件名称
+	frame : Int,            // 触发帧
+	?originalEvent : Event  // 原始事件（用于引用原始数据）
 }
 
+/**
+ * 动画基类（Animation）
+ *
+ * Heaps 引擎的动画系统核心类，管理：
+ * - 帧计数和时间映射
+ * - 播放速度控制
+ * - 循环/单次播放
+ * - 动画事件触发
+ * - 动画对象绑定
+ *
+ * 子类包括：
+ * - LinearAnimation：线性插值动画（关键帧）
+ * - BufferAnimation：缓冲动画（GPU 动画）
+ * - SimpleBlend：简单混合动画
+ * - SmoothTransition：平滑过渡动画
+ */
 class Animation {
 
 	static inline var EPSILON = 0.000001;
 
-	public var name : String;
-	public var resourcePath : String;
-	public var frameCount(default, null) : Int;
-	public var sampling(default,null) : Float;
-	public var frame(default, null) : Float;
+	public var name : String;             // 动画名称
+	public var resourcePath : String;     // 资源路径
+	public var frameCount(default, null) : Int;   // 总帧数
+	public var sampling(default,null) : Float;    // 采样率（帧/秒）
+	public var frame(default, null) : Float;      // 当前帧
 
-	public var speed : Float;
-	public var onAnimEnd : Void -> Void;
-	public var onEvent : String -> Void;
+	public var speed : Float;              // 播放速度倍率
+	public var onAnimEnd : Void -> Void;   // 动画结束回调
+	public var onEvent : String -> Void;   // 事件触发回调
 
-	public var pause : Bool;
-	public var loop : Bool;
+	public var pause : Bool;               // 是否暂停
+	public var loop : Bool;                // 是否循环
 
-	// Events extracted from animation source file (FBX for example)
+	// 从动画源文件（如 FBX）提取的事件
 	public var sourceEvents(default, null) : Array<Event>;
+	// 处理后的事件列表（按帧分组）
 	public var events(default, null) : Array<Array<Event>>;
 
-	var isInstance : Bool;
-	var objects : Array<AnimatedObject>;
-	var isSync : Bool;
-	var lastEvent : Int;
+	var isInstance : Bool;                     // 是否是实例（克隆）
+	var objects : Array<AnimatedObject>;        // 该动画驱动的对象列表
+	var isSync : Bool;                         // 是否需要同步
+	var lastEvent : Int;                       // 上次触发的事件索引
 
 	function new(name, frameCount, sampling) {
 		this.name = name;
@@ -63,19 +90,26 @@ class Animation {
 		pause = false;
 	}
 
+	/**
+	 * 根据文件名判断是否为动画资源
+	 * Heaps 约定：以 "anim_" 开头或包含 "_anim_" 的文件为动画
+	 */
 	public static function isAnimation(filename : String) {
 		var lowerCase = filename.toLowerCase();
-		return StringTools.startsWith(lowerCase, "anim_")|| lowerCase.indexOf("_anim_") > 0;
+		return StringTools.startsWith(lowerCase, "anim_") || lowerCase.indexOf("_anim_") > 0;
 	}
 
+	/** 获取动画总时长（秒） */
 	public function getDuration() {
 		return frameToTime(frameCount);
 	}
 
+	/** 帧到时间的转换 */
 	inline function frameToTime(f) {
 		return f / (sampling * speed);
 	}
 
+	/** 获取当前整数帧索引 */
 	inline function getIFrame() {
 		var f = Std.int(frame);
 		var max = endFrame();
@@ -83,6 +117,10 @@ class Animation {
 		return f;
 	}
 
+	/**
+	 * 解绑指定名称的动画对象
+	 * 清除目标对象和目标骨骼的引用
+	 */
 	public function unbind( objectName : String ) {
 		for( o in objects )
 			if( o.objectName == objectName ) {
@@ -94,7 +132,6 @@ class Animation {
 				return;
 			}
 	}
-
 
 	public function getEvents() return events;
 	public function getSourceEvents() return sourceEvents;

@@ -2,38 +2,41 @@ package h2d.col;
 import hxd.Math;
 
 /**
-	The circular hitbox implementation of a 2D Collider.
-**/
+ * 2D 圆形碰撞体（Circle Collider）
+ *
+ * 圆形碰撞检测实现。由圆心 (x,y) 和半径 ray 定义。
+ * 是最简单的 2D 碰撞体，检测效率极高。
+ *
+ * 用于：
+ * - 鼠标/触摸点击测试
+ * - 圆形与圆形碰撞
+ * - 圆形与 AABB 碰撞
+ * - 线段与圆形相交
+ */
 class Circle extends Collider {
 
-	/**
-		Horizontal position of the Circle center.
-	**/
+	/** 圆心 X */
 	public var x : Float;
-	/**
-		Vertical position of the Circle center.
-	**/
+	
+	/** 圆心 Y */
 	public var y : Float;
-	/**
-		Radius of the circle.
-	**/
+	
+	/** 半径 */
 	public var ray : Float;
 
 	/**
-		Create new Circle collider.
-		@param x X position of the Circle center.
-		@param y Y position of the Circle center.
-		@param ray Radius of the circle.
-	**/
+	 * 创建圆形碰撞体
+	 * @param x 圆心 X
+	 * @param y 圆心 Y
+	 * @param ray 半径
+	 */
 	public inline function new( x : Float, y : Float, ray : Float ) {
 		this.x = x;
 		this.y = y;
 		this.ray = ray;
 	}
 
-	/**
-		Returns a squared distance between the Circle center and the given Point `p`.
-	**/
+	/** 返回点到圆心的平方距离（减去半径） */
 	public inline function distanceSq( p : Point ) : Float {
 		var dx = p.x - x;
 		var dy = p.y - y;
@@ -41,18 +44,14 @@ class Circle extends Collider {
 		return d < 0 ? 0 : d;
 	}
 
-	/**
-		Returns a squared distance between the Circle border and the given Point `p`.
-	**/
+	/** 返回点到圆形边界的侧面距离（正=内部，负=外部） */
 	public inline function side( p : Point ) : Float {
 		var dx = p.x - x;
 		var dy = p.y - y;
 		return ray * ray - (dx * dx + dy * dy);
 	}
 
-	/**
-		Tests if this Circle collides with the given Circle `c`.
-	**/
+	/** 检测两个圆形是否相交 */
 	public inline function collideCircle( c : Circle ) : Bool {
 		var dx = x - c.x;
 		var dy = y - c.y;
